@@ -1,8 +1,24 @@
 --goofy kz lua plugin i modified to work with multiple players on a server instead of solo
 --unmodified found in https://github.com/GameChaos/cs2_things/blob/main/scripts/vscripts/kz.lua
 
--- 0 = kztimer, 1 = vnl
-local mvmntSettings = 0
+
+-- 0 = kztimer, 1 = vnl, 2 = vnl with sv_enablebhop 0
+local mvmntSettings = 1
+
+local settingsprefix = " "
+
+if mvmntSettings == 0 then
+	settingsprefix = "KZ"
+end
+
+if mvmntSettings == 1 then
+	settingsprefix = "VNL"
+end
+
+if mvmntSettings == 2 then
+	settingsprefix = "MM"
+end
+
 local pluginActivated = false
 local mode = 0
 local cpSound = "sounds/buttons/blip1.vsnd"
@@ -70,6 +86,27 @@ function CvarsVanilla()
 	SendToServerConsole("sv_wateraccelerate 10.0")
 end
 
+function CvarsDefault()
+	mode = 1
+	SendToServerConsole("sv_accelerate 5.5")
+	SendToServerConsole("sv_accelerate_use_weapon_speed 1")
+	SendToServerConsole("sv_airaccelerate 12.0")
+	SendToServerConsole("sv_air_max_wishspeed 30.0")
+	SendToServerConsole("sv_enablebunnyhopping 0")
+	SendToServerConsole("sv_friction 5.2")
+	SendToServerConsole("sv_gravity 800.0")
+	SendToServerConsole("sv_jump_impulse 301.993377")
+	SendToServerConsole("sv_ladder_scale_speed 0.78")
+	SendToServerConsole("sv_maxspeed 320.0")
+	SendToServerConsole("sv_maxvelocity 3500.0")
+	SendToServerConsole("sv_staminajumpcost 0.08")
+	SendToServerConsole("sv_staminalandcost 0.05")
+	SendToServerConsole("sv_staminamax 80.0")
+	SendToServerConsole("sv_staminarecoveryrate 60.0")
+	SendToServerConsole("sv_timebetweenducks 0.4")
+	SendToServerConsole("sv_wateraccelerate 10.0")
+end
+
 function locals()
 	local i = 1
 	repeat
@@ -104,7 +141,6 @@ Convars:RegisterCommand("kz_tp", function()
 		player:SetAngles(player.cpAngles.x, player.cpAngles.y, player.cpAngles.z)
 		player:SetVelocity(Vector(0, 0, 0))
 		PlayCpSound(player)
-		print(player)
 	end
 end, nil, 0)
 
@@ -174,7 +210,7 @@ function PlayerTick(player)
 			local jumpVec = player.jumpOrigin - player:GetOrigin()
 			local distance = jumpVec:Length2D()
 			local pre = math.sqrt(player.jumpVelocity.x * player.jumpVelocity.x + player.jumpVelocity.y * player.jumpVelocity.y)
-			ScriptPrintMessageChatAll(" " .. "\x0B [DEAFPS KZ] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x10 LJ: " .. tostring(string.format("%.2f", distance + 32.0)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
+			ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x10 LJ: " .. tostring(string.format("%.2f", distance + 32.0)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
 			player.jumped = false
 		end
 	end
@@ -272,11 +308,17 @@ function Activate()
 	-- Restart round to ensure settings (e.g. mp_weapons_allow_map_placed) are applied
 	--SendToServerConsole("mp_restartgame 1")
 	SendToServerConsole("mp_warmup_end")
+
+	if mvmntSettings == 0 then
+		CvarsKztimer()
+	end
 	
 	if mvmntSettings == 1 then
 		CvarsVanilla()
-	else 
-		CvarsKztimer()
+	end
+
+	if mvmntSettings == 2 then
+		CvarsDefault()
 	end
 	
 	g_worldent = Entities:FindByClassname(nil, "worldent")
@@ -284,8 +326,8 @@ function Activate()
 end
 
 if not pluginActivated then
-	ListenToGameEvent("round_announce_warmup", Activate, nil)
+	ListenToGameEvent("round_announce_warmup", Activate, nil) --make sure the plugin activates after a player ends the server idle state
 	pluginActivated = true
 end
 
-ListenToGameEvent("player_connect", SaveUserID, nil)
+ListenToGameEvent("player_connect", SaveUserID, nil) -- save username on connect, will break after map change since the player is not reconnected
