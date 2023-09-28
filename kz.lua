@@ -248,6 +248,7 @@ function UpdateOnRemove()
 end
 
 function Activate()
+	SendToServerConsole("sv_cheats 1")
 	SendToServerConsole("mp_ct_default_secondary weapon_usp_silencer")
 	SendToServerConsole("mp_t_default_secondary weapon_usp_silencer")
 	
@@ -320,6 +321,7 @@ function Activate()
 	-- Restart round to ensure settings (e.g. mp_weapons_allow_map_placed) are applied
 	--SendToServerConsole("mp_restartgame 1")
 	SendToServerConsole("mp_warmup_end")
+	SendToServerConsole("sv_cheats 0")
 
 	if mvmntSettings == 0 then
 		CvarsKztimer()
