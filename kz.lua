@@ -29,6 +29,7 @@ if Kreedz == nil then
 end
 
 userTable = {}
+userRecord = {}
 
 function SaveUserID(event)
 	table.insert(userTable, { ["Name"] = event.name, ["SteamID"] = tostring(event.xuid), ["UserID"] = event.userid, ["SteamID3"] = event.networkid })
@@ -43,6 +44,39 @@ function GetNameFromUserID(targetUserID)
     return "unknown"
 end
 
+local function updateOrInsertPlayerRecord(player, distanceValue, pre)
+    local newRecordValue = distanceValue + 32.0
+    
+    for _, record in ipairs(userRecord) do
+        if record.pawn == player.userid then
+            if newRecordValue > record.record then
+                record.record = newRecordValue
+		print("new record " .. tostring(player.userid) .. " " .. tostring(string.format("%.3f", newRecordValue)))
+		ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x10 New LJ PB: " .. tostring(string.format("%.3f", newRecordValue)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
+            else
+		ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x05 LJ: " .. tostring(string.format("%.3f", newRecordValue)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
+	    end
+	    
+            return
+        end
+    end
+    
+    
+    table.insert(userRecord, { ["pawn"] = player.userid, ["record"] = newRecordValue })
+    print("new player " .. tostring(player.userid) .. " " .. tostring(string.format("%.3f", newRecordValue)))
+    ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x10 New LJ PB: " .. tostring(string.format("%.3f", newRecordValue)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
+end
+
+function RemoveRecord(event)
+    local playerId = event.userid
+    
+    for index, record in ipairs(userRecord) do
+        if record.pawn == playerId then
+            table.remove(userRecord, index)
+            break
+        end
+    end
+end
 
 function CvarsKztimer()
 	mode = 0
@@ -142,6 +176,7 @@ Convars:RegisterCommand("kz_tp", function()
 		player:SetVelocity(Vector(0, 0, 0))
 		PlayCpSound(player)
 	end
+	player.jumped = false
 end, nil, 0)
 
 function UserIdPawnToPlayerPawn(useridPawn)
@@ -208,9 +243,22 @@ function PlayerTick(player)
 	if player.framesOnGround == 1 then
 		if player.jumped then
 			local jumpVec = player.jumpOrigin - player:GetOrigin()
-			local distance = jumpVec:Length2D()
+			
+			local verticalDistance = math.abs(jumpVec.z)
+
+			local distance
+			if verticalDistance > 10 then
+				distance = 0
+			else
+				distance = jumpVec:Length2D()
+			end
+			
 			local pre = math.sqrt(player.jumpVelocity.x * player.jumpVelocity.x + player.jumpVelocity.y * player.jumpVelocity.y)
-			ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x10 LJ: " .. tostring(string.format("%.2f", distance + 32.0)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
+			
+			if distance ~= 0 then
+				updateOrInsertPlayerRecord(player, distance, pre)
+			end
+			
 			player.jumped = false
 		end
 	end
@@ -318,8 +366,6 @@ function Activate()
 	-- End to falldamage
 	SendToServerConsole("sv_falldamage_scale 0")
 	
-	-- Restart round to ensure settings (e.g. mp_weapons_allow_map_placed) are applied
-	--SendToServerConsole("mp_restartgame 1")
 	SendToServerConsole("mp_warmup_end")
 	SendToServerConsole("sv_cheats 0")
 
@@ -344,4 +390,5 @@ if not pluginActivated then
 	pluginActivated = true
 end
 
+ListenToGameEvent("player_disconnect", RemoveRecord, nil)
 ListenToGameEvent("player_connect", SaveUserID, nil) -- save username on connect, will break after map change since the player is not reconnected
