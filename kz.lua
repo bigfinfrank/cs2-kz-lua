@@ -24,12 +24,7 @@ local mode = 0
 local cpSound = "sounds/buttons/blip1.vsnd"
 local g_worldent = nil
 
-if Kreedz == nil then
-	Kreedz = class({})
-end
-
 userTable = {}
-userRecord = {}
 
 function SaveUserID(event)
 	table.insert(userTable, { ["Name"] = event.name, ["SteamID"] = tostring(event.xuid), ["UserID"] = event.userid, ["SteamID3"] = event.networkid })
@@ -44,27 +39,15 @@ function GetNameFromUserID(targetUserID)
     return "unknown"
 end
 
-local function updateOrInsertPlayerRecord(player, distanceValue, pre)
+local function updatePlayerRecord(player, distanceValue, pre)
     local newRecordValue = distanceValue + 32.0
     
-    for _, record in ipairs(userRecord) do
-        if record.pawn == player.userid then
-            if newRecordValue > record.record then
-                record.record = newRecordValue
-		print("new record " .. tostring(player.userid) .. " " .. tostring(string.format("%.3f", newRecordValue)))
-		ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x10 New LJ PB: " .. tostring(string.format("%.3f", newRecordValue)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
-            else
-		ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x05 LJ: " .. tostring(string.format("%.3f", newRecordValue)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
-	    end
-	    
-            return
-        end
-    end
-    
-    
-    table.insert(userRecord, { ["pawn"] = player.userid, ["record"] = newRecordValue })
-    print("new player " .. tostring(player.userid) .. " " .. tostring(string.format("%.3f", newRecordValue)))
-    ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x10 New LJ PB: " .. tostring(string.format("%.3f", newRecordValue)) .. " \x08 [Pre: " .. tostring(string.format("%.2f", pre)) .. "]")
+    if newRecordValue > player.record then 
+        player.record = newRecordValue
+		ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x10 New LJ PB: " .. tostring(string.format("%06.2f", player.record)) .. " \x08 [Pre: " .. tostring(string.format("%06.2f", pre)) .. "]")
+    else
+		ScriptPrintMessageChatAll(" " .. "\x0B [" .. settingsprefix .. "] \x08 [" .. GetNameFromUserID(player.userid) .. "] \x05 LJ: " .. tostring(string.format("%06.2f", distanceValue)) .. " \x08 [Pre: " .. tostring(string.format("%06.2f", pre)) .. "]")
+	end
 end
 
 function RemoveRecord(event)
@@ -152,18 +135,13 @@ function locals()
 	until nil == k
 end
 
-function PlayCpSound(player)
-	-- HACK, can't get EmitSoundOnClient to work :(
-	SendToConsole("play " .. cpSound)
-end
-
 Convars:RegisterCommand("kz_cp", function()
 	local player = Convars:GetCommandClient()
 	if player.onGround then
 		player.cpSaved = true
 		player.cpOrigin = player:GetAbsOrigin()
 		player.cpAngles = player:EyeAngles()
-		PlayCpSound(player)
+		player:EmitSoundParams(cpSound, SNDPITCH_NORMAL, 1.0, 10.0)
 	end
 	
 end, nil, 0)
@@ -174,7 +152,7 @@ Convars:RegisterCommand("kz_tp", function()
 		player:SetAbsOrigin(player.cpOrigin)
 		player:SetAngles(player.cpAngles.x, player.cpAngles.y, player.cpAngles.z)
 		player:SetVelocity(Vector(0, 0, 0))
-		PlayCpSound(player)
+		player:EmitSoundParams(cpSound, SNDPITCH_NORMAL, 1.0, 10.0)
 	end
 	player.jumped = false
 end, nil, 0)
@@ -207,17 +185,19 @@ function InitialiseVars(player)
 	player.jumpVelocity = Vector(0, 0, 0)
 	player.jumped = false
 	player.lastFramesOnGround = 0
+	player.record = 0.00
 end
 
 function PlayerTick(player)
 	local velocity = player:GetVelocity()
 	local speed = velocity:Length2D()
 	
-	FireGameEvent("show_survival_respawn_status", {["loc_token"] = "<font color=\"green\">" .. GetNameFromUserID(player.userid) .. "'s speed: </font> <font color=\"white\">" .. string.format("%.3f", speed) .. "</font>", ["duration"] = 5, ["userid"] = player.userid})
-	
+		
 	if player.varsInitialised == nil then
 		InitialiseVars(player)
 	end
+	
+	FireGameEvent("show_survival_respawn_status", {["loc_token"] = "<font color=\"yellow\">★ [PB: " .. tostring(string.format("%06.2f", player.record)) .. "]</font><font color=\"white\"><br></font><font color=\"orange\">☆ [SPEED: " .. string.format("%06.2f", speed) .. "]</font>", ["duration"] = 5, ["userid"] = player.userid})
 	
 	if player.lastJumpEventFrame == GetFrameCount() - 2 then
 		local speed = velocity:Length2D()
@@ -256,7 +236,7 @@ function PlayerTick(player)
 			local pre = math.sqrt(player.jumpVelocity.x * player.jumpVelocity.x + player.jumpVelocity.y * player.jumpVelocity.y)
 			
 			if distance ~= 0 then
-				updateOrInsertPlayerRecord(player, distance, pre)
+				updatePlayerRecord(player, distance, pre)
 			end
 			
 			player.jumped = false
@@ -289,10 +269,6 @@ function Tick()
 		PlayerTick(players[i])
 	end
 	return FrameTime()
-end
-
-function UpdateOnRemove()
-	StopListeningToAllGameEvents(Kreedz)
 end
 
 function Activate()
@@ -332,7 +308,6 @@ function Activate()
 	
 	-- General
 	SendToServerConsole("sv_pure 0")
-	-- SendToServerConsole("bot_quota 0")
 	SendToServerConsole("sv_allow_votes 0")
 	SendToServerConsole("sv_infinite_ammo 2")
 	SendToServerConsole("mp_free_armor 2")
