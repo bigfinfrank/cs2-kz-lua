@@ -1,4 +1,12 @@
 # cs2-kz-lua
+goofy kz lua plugin
+
+works in multiplayer (original was solo only)
+
+added session PB
+
+excluded vertical longjumps
+
 
 # this requiers a lua unlocked vscript.dll
 
