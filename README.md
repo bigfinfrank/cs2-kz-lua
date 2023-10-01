@@ -9,7 +9,7 @@ excluded vertical longjumps
 
 
 # this requiers a lua unlocked vscript.dll
-
+https://github.com/bklol/vscriptPatch
 ⠀
 
 put into **/csgo/scripts/vscripts/**
