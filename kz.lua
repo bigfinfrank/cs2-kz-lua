@@ -80,6 +80,9 @@ function CvarsKztimer()
 	SendToServerConsole("sv_staminarecoveryrate 0.0")
 	SendToServerConsole("sv_timebetweenducks 0.0")
 	SendToServerConsole("sv_wateraccelerate 10.0")
+	SendToServerConsole("mp_damage_headshot_only 1")
+	SendToServerConsole("mp_damage_scale_t_head 0")
+	SendToServerConsole("mp_damage_scale_ct_head 0")
 end
 
 function CvarsVanilla()
@@ -101,6 +104,9 @@ function CvarsVanilla()
 	SendToServerConsole("sv_staminarecoveryrate 60.0")
 	SendToServerConsole("sv_timebetweenducks 0.4")
 	SendToServerConsole("sv_wateraccelerate 10.0")
+	SendToServerConsole("mp_damage_headshot_only 1")
+	SendToServerConsole("mp_damage_scale_t_head 0")
+	SendToServerConsole("mp_damage_scale_ct_head 0")
 end
 
 function CvarsDefault()
@@ -122,6 +128,9 @@ function CvarsDefault()
 	SendToServerConsole("sv_staminarecoveryrate 60.0")
 	SendToServerConsole("sv_timebetweenducks 0.4")
 	SendToServerConsole("sv_wateraccelerate 10.0")
+	SendToServerConsole("mp_damage_headshot_only 1")
+	SendToServerConsole("mp_damage_scale_t_head 0")
+	SendToServerConsole("mp_damage_scale_ct_head 0")
 end
 
 function locals()
@@ -155,6 +164,36 @@ Convars:RegisterCommand("kz_tp", function()
 		player:EmitSoundParams(cpSound, SNDPITCH_NORMAL, 1.0, 10.0)
 	end
 	player.jumped = false
+end, nil, 0)
+
+local knifeCommands = {
+    bayonet = "500",
+    butterfly = "515",
+    karambit = "507",
+    m9 = "508",
+    skeleton = "525",
+    talon = "523",
+    classic = "503",
+    stiletto = "522",
+    flip = "505",
+    ursus = "519",
+    paracord = "517",
+    survival = "518",
+    huntsman = "509",
+    falchion = "512",
+    bowie = "514",
+    daggers = "516",
+    gut = "506",
+    navaja = "520"
+}
+
+Convars:RegisterCommand("knife", function(_, knife)
+    local command = knifeCommands[knife]
+    if command then
+        SendToServerConsole("sv_cheats 1")
+        SendToServerConsole("subclass_change " .. command)
+        SendToServerConsole("sv_cheats 0")
+    end
 end, nil, 0)
 
 function UserIdPawnToPlayerPawn(useridPawn)
