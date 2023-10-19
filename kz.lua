@@ -130,7 +130,6 @@ local knifeCommands = {
 Convars:RegisterCommand("knife", function(_, knife)
     local command = knifeCommands[knife]
     if command then
-        SendToServerConsole("sv_cheats true")
         SendToServerConsole("subclass_change " .. command .. " weapon_knife")
     end
 end, nil, 0)
