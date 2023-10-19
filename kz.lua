@@ -3,7 +3,7 @@
 
 
 -- 0 = kztimer, 1 = vnl, 2 = vnl with sv_enablebhop 0
-local mvmntSettings = 1
+local mvmntSettings = 0
 
 local settingsprefix = " "
 
