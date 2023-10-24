@@ -51,6 +51,10 @@ local function updatePlayerRecord(player, distanceValue, pre)
 end
 
 function RemoveRecord(event)
+    if not userRecord then
+        return
+    end
+
     local playerId = event.userid
     
     for index, record in ipairs(userRecord) do
