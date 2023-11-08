@@ -167,15 +167,15 @@ local knifeCommands = {
     su = "518",
     ursus = "519",
     ur = "519",
-    navaja = "520"
-    na = "520"
+    navaja = "520",
+    na = "520",
     stiletto = "522",
     st = "522",
     talon = "523",
     ta = "523",
     skeleton = "525",
     skele = "525",
-    sk = "525",
+    sk = "525"
 }
 
 Convars:RegisterCommand("knife", function(_, knife)
