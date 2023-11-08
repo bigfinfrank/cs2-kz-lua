@@ -51,6 +51,10 @@ local function updatePlayerRecord(player, distanceValue, pre)
 end
 
 function RemoveRecord(event)
+    if not userRecord then
+        return
+    end
+
     local playerId = event.userid
     
     for index, record in ipairs(userRecord) do
@@ -84,13 +88,27 @@ function locals()
 	until nil == k
 end
 
+function playBeep(player, soundtoplay)
+
+	local ClientCmd = Entities:FindByClassname(nil, "point_clientcommand")
+		
+	if ClientCmd == nil then
+		ClientCmd = SpawnEntityFromTableSynchronous("point_clientcommand", { targetname = "vscript_clientcommand" })
+	else
+		--clientCmd already there
+	end
+
+	DoEntFireByInstanceHandle(ClientCmd, "command", "play " .. soundtoplay, 0.1, player, player)
+
+end
+
 Convars:RegisterCommand("kz_cp", function()
 	local player = Convars:GetCommandClient()
 	if player.onGround then
 		player.cpSaved = true
 		player.cpOrigin = player:GetAbsOrigin()
 		player.cpAngles = player:EyeAngles()
-		player:EmitSoundParams(cpSound, SNDPITCH_NORMAL, 1.0, 10.0)
+		playBeep(player, cpSound)
 	end
 	
 end, nil, 0)
@@ -101,7 +119,7 @@ Convars:RegisterCommand("kz_tp", function()
 		player:SetAbsOrigin(player.cpOrigin)
 		player:SetAngles(player.cpAngles.x, player.cpAngles.y, player.cpAngles.z)
 		player:SetVelocity(Vector(0, 0, 0))
-		player:EmitSoundParams(cpSound, SNDPITCH_NORMAL, 1.0, 10.0)
+		playBeep(player, cpSound)
 	end
 	player.jumped = false
 end, nil, 0)
